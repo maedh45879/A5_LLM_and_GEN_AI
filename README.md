@@ -50,6 +50,26 @@ genai-restaurant-assistant/
 
 ## 🔧 Installation
 
+### ⚙️ 1️⃣ Create and activate a virtual environment
+
+#### 🖥️ Mac / Linux
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+#### 🪟 Windows (PowerShell)
+
+```powershell
+python -m venv venv
+venv\Scripts\activate
+```
+
+> 💡 Always activate the venv **before running or installing anything**.
+
+---
+
 ### 1️⃣ Install dependencies
 
 ```bash
