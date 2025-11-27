@@ -25,7 +25,9 @@ Offline-first restaurant assistant that handles voice or text for reservations, 
    - Optional: FFmpeg + audio device if you need full STT/TTS.
 2. **Install deps**
    ```bash
-   python -m venv .venv && source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+   python -m venv .venv
+   .venv\Scripts\activate on Windows
+   cd A5_LLM_AND_GEN_AI
    pip install -r requirements.txt
    ```
 3. **Environment**
