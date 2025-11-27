@@ -1,133 +1,91 @@
-# 🍽️ Voice-Enabled GenAI Restaurant Assistant (MVP)
+# Voice-Enabled GenAI Restaurant Assistant
 
-> **AI-powered receptionist for restaurants** — built with **FastAPI + Ollama**.
-> This MVP provides a text-based conversational assistant able to take reservations, answer menu questions, and simulate customer interactions.
-> Voice interactions, RAG (menu info), and multi-agent orchestration will be added in later versions.
+Offline-first restaurant assistant that handles voice or text for reservations, orders, menu Q&A (RAG), and general info. Works with local Ollama models or Google Gemini.
 
----
+## Features
+- FastAPI backend with endpoints for voice, reservations, orders, menu QA, and general info.
+- Configurable LLM provider: Ollama (`llama3`, `mistral`, etc.) or Google Generative AI (Gemini/Vertex).
+- RAG over local menu/FAQ docs using Chroma + sentence transformers.
+- Pluggable speech layer (STT/TTS) with offline-friendly defaults (pyttsx3, optional Whisper).
+- Streamlit UI with chat/voice loop, TTS playback, reservation/order/menu widgets (mobile-friendly layout).
+- Minimal tests for health and intent routing; Docker & docker-compose for API + UI.
 
-## 🚀 Features (Current MVP)
+## Architecture
+- **FastAPI (`app/api.py`)**: routes + dependency wiring; voice endpoint orchestrates STT → intent router → tools/LLM → TTS.
+- **Orchestration (`app/orchestration/`)**: intent router, LLM factory, agents for reservations/orders/general, menu QA tool (RAG).
+- **RAG (`app/rag/`)**: ingest script -> Chroma vector store; retriever loaded at runtime.
+- **Speech (`app/speech/`)**: abstractions + providers (dummy, Whisper STT; pyttsx3/Null TTS).
+- **UI (`ui/streamlit_app.py`)**: chat/voice pane, reservation/order forms, menu QA card.
+- **Config (`app/config.py`)**: Pydantic settings with `.env` support.
 
-✔ Conversational restaurant assistant
-✔ Takes reservations through natural language
-✔ Answers menu + general questions
-✔ Runs locally with **Ollama** (free, open-source models)
-✔ Simple API endpoint (`/api/chat`)
-✔ Reproducible and documented
+## Setup
+1. **Prereqs**
+   - Python 3.11+
+   - [Ollama](https://ollama.com/download) running locally for offline LLMs (e.g., `ollama run llama3` to pull the model), or Google API key for online mode.
+   - Optional: FFmpeg + audio device if you need full STT/TTS.
+2. **Install deps**
+   ```bash
+   python -m venv .venv && source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+   pip install -r requirements.txt
+   ```
+3. **Environment**
+   - Copy `.env.example` to `.env` and adjust:
+     - `LLM_PROVIDER=ollama|google`
+     - `LLM_MODEL=llama3` (Ollama) or `gemini-1.5-flash` (Google)
+     - `GOOGLE_API_KEY` (if using Google)
+     - `RAG_*` paths, `BACKEND_URL` for UI.
 
-> 💡 Next steps (future updates): Voice, RAG, Multi-Agents, Streamlit UI
-
----
-
-## 🏗️ Tech Stack
-
-| Component          | Technology                  |
-| ------------------ | --------------------------- |
-| Backend            | FastAPI                     |
-| LLM Inference      | Ollama (default: `mistral`) |
-| HTTP Requests      | httpx                       |
-| Deployment (later) | Docker                      |
-| UI (later)         | Streamlit                   |
-
----
-
-## 📂 Project Structure
-
-```
-genai-restaurant-assistant/
-│
-├── app/
-│   ├── __init__.py
-│   ├── llm_client.py      # LLM call wrapper for Ollama
-│   └── api.py             # FastAPI REST endpoints
-│
-├── main.py                # FastAPI entrypoint
-├── requirements.txt
-└── README.md
-```
-
----
-
-## 🔧 Installation
-
-### ⚙️ 1️⃣ Create and activate a virtual environment
-
-#### 🖥️ Mac / Linux
-
+## Run the backend
 ```bash
-python3 -m venv venv
-source venv/bin/activate
+python main.py  # starts FastAPI on host/port from config (default 0.0.0.0:8000)
 ```
+Endpoints of interest:
+- `GET /health`
+- `POST /voice` (`audio_base64` or `text`)
+- `POST /reservation`, `/order`, `/menu/qa`, `/info`
 
-#### 🪟 Windows (PowerShell)
+## Build the menu knowledge base (RAG)
+1. Add/update docs under `data/menu/` (`.txt`, `.md`, `.pdf`).
+2. Run ingestion (creates `data/vector_store/`):
+   ```bash
+   python scripts/ingest_menu.py
+   ```
 
-```powershell
-python -m venv venv
-venv\Scripts\activate
-```
-
-> 💡 Always activate the venv **before running or installing anything**.
-
----
-
-### 1️⃣ Install dependencies
-
+## Run the Streamlit UI
 ```bash
-pip install -r requirements.txt
+export BACKEND_URL=http://localhost:8000  # or set in .env
+streamlit run ui/streamlit_app.py --server.address 0.0.0.0 --server.port 8501
 ```
+- Chat pane accepts text or audio upload; responses include TTS playback when available.
+- Reservation/order/menu widgets call the backend endpoints directly.
 
-### 2️⃣ Install Ollama (if not installed)
-
-[https://ollama.com/download](https://ollama.com/download)
-
-Then pull a model (ex: Mistral)
-
+## Docker (optional)
+Build and run API+UI:
 ```bash
-ollama pull mistral
+docker compose up --build
 ```
+Services:
+- `api`: `uvicorn app.api:app` on `8000`
+- `ui`: `streamlit_app.py` on `8501` (uses `BACKEND_URL=http://api:8000`)
+The `data/` directory is mounted for vector store persistence.
 
----
+## Configuration reference
+- See `.env.example` and `app/config.py` for all options.
+- Speech:
+  - `SPEECH_STT_PROVIDER`: `dummy` (default) or `whisper` (requires `openai-whisper`).
+  - `SPEECH_TTS_PROVIDER`: `pyttsx3` (offline) or `null`.
+- LLM:
+  - Ollama: ensure the daemon is running and the model is pulled.
+  - Google: set `GOOGLE_API_KEY`, optionally project/location for Vertex.
 
-## ▶️ Run the Application
-
-Start FastAPI server:
-
+## Testing
 ```bash
-uvicorn main:app --reload
+pytest
 ```
+Includes health check and intent routing coverage. Voice/LLM paths are structured for easy mocking.
 
-The API will be available at:
-
-```
-http://localhost:8000/api/chat
-```
-
----
-
-## 📡 Example API Call
-
-### Using `curl`
-
-```bash
-curl -X POST http://localhost:8000/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{
-        "message": "I want to book a table for 4 tonight at 8pm",
-        "history": []
-      }'
-```
-
-### Example Response
-
-```json
-{
-  "reply": "Sure! Can I have your name for the reservation?"
-}
-```
-
----
-
-## 📝 License
-
-This project uses open-source, academic-friendly LLMs and tools.
-You are free to use, modify, and distribute under **MIT License**.
+## Troubleshooting
+- **LLM unavailable**: the app logs the error and continues; responses fall back to static messages. Verify `LLM_PROVIDER` and that Ollama/Google creds are available.
+- **RAG not initialized**: run `python scripts/ingest_menu.py` after adding docs.
+- **TTS/STT issues**: switch to `dummy/null` providers in `.env` to bypass audio during CI or headless use.
+- **Model downloads**: the embedding model (`sentence-transformers/all-MiniLM-L6-v2`) downloads on first run; pre-download in connected environments if running fully offline.
