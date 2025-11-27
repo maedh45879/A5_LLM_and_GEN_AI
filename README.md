@@ -29,6 +29,7 @@ Offline-first restaurant assistant that handles voice or text for reservations, 
    .venv\Scripts\activate     # on Windows
    cd A5_LLM_AND_GEN_AI
    pip install -r requirements.txt
+   # Optional (for Whisper STT): pip install "git+https://github.com/openai/whisper.git"
    ```
 3. **Environment**
    - Copy `.env.example` to `.env` and adjust:
@@ -74,7 +75,7 @@ The `data/` directory is mounted for vector store persistence.
 ## Configuration reference
 - See `.env.example` and `app/config.py` for all options.
 - Speech:
-  - `SPEECH_STT_PROVIDER`: `dummy` (default) or `whisper` (requires `openai-whisper`).
+  - `SPEECH_STT_PROVIDER`: `dummy` (default) or `whisper` (install Whisper separately).
   - `SPEECH_TTS_PROVIDER`: `pyttsx3` (offline) or `null`.
 - LLM:
   - Ollama: ensure the daemon is running and the model is pulled.
